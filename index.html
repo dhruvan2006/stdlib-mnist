@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MNIST · Draw & Recognize</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #2a2a3d;
+    --accent: #00ffb3;
+    --accent2: #ff3e6c;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --glow: 0 0 20px rgba(0,255,179,0.35);
+    --glow2: 0 0 20px rgba(255,62,108,0.35);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+    overflow-x: hidden;
+  }
+
+  /* animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .everything { position: relative; z-index: 1; width: 100%; max-width: 860px; }
+
+  /*  HEADER  */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 12px;
+    margin-bottom: 16px;
+    border-radius: 2px;
+  }
+  h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900;
+    font-size: clamp(2rem, 6vw, 4rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  h1 span { color: var(--accent); }
+  .subtitle {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /*  MAIN AREA  */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 640px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /*  CANVAS PANEL  */
+  .canvas-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .canvas-wrap {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px var(--border), inset 0 0 60px rgba(0,0,0,0.5);
+    transition: box-shadow 0.2s;
+  }
+  .canvas-wrap.active { box-shadow: 0 0 0 1px var(--accent), var(--glow); }
+  #draw-canvas {
+    display: block;
+    cursor: crosshair;
+    background: #000;
+    touch-action: none;
+  }
+
+  /* 28×28 pixel preview */
+  #preview-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .preview-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  #preview-canvas {
+    image-rendering: pixelated;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    width: 84px; height: 84px;
+  }
+
+  .btn-row { display: flex; gap: 10px; width: 100%; }
+  .btn {
+    flex: 1;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 0;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--text); color: var(--text); }
+  .btn.primary {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn.primary:hover { background: rgba(0,255,179,0.08); box-shadow: var(--glow); }
+  .btn.danger { border-color: var(--accent2); color: var(--accent2); }
+  .btn.danger:hover { background: rgba(255,62,108,0.08); box-shadow: var(--glow2); }
+
+  /*  RESULT PANEL  */
+  .result-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .big-prediction {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    min-height: 100px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .big-prediction.lit {
+    border-color: var(--accent);
+    box-shadow: var(--glow);
+  }
+  .prediction-digit {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900;
+    font-size: 5rem;
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    min-width: 80px;
+    text-align: center;
+    transition: opacity 0.2s;
+  }
+  .prediction-digit.dim { opacity: 0.15; }
+  .prediction-meta { flex: 1; }
+  .prediction-meta .conf-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .conf-bar-bg {
+    background: var(--border);
+    border-radius: 2px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .conf-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+    box-shadow: var(--glow);
+  }
+  .conf-value {
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  /*  BAR CHART  */
+  .chart-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+  }
+  .chart-title {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .bar-list { display: flex; flex-direction: column; gap: 8px; }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 18px 1fr 44px;
+    align-items: center;
+    gap: 10px;
+  }
+  .bar-digit {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+  }
+  .bar-track {
+    background: var(--border);
+    border-radius: 2px;
+    height: 14px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--border);
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1), background 0.3s;
+    width: 0%;
+  }
+  .bar-fill.top { background: var(--accent); box-shadow: var(--glow); }
+  .bar-pct {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+    letter-spacing: 0.04em;
+    transition: color 0.3s;
+  }
+  .bar-pct.top { color: var(--accent); }
+
+  /*  IDLE STATE  */
+  #idle-hint {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    padding: 20px 0;
+    letter-spacing: 0.05em;
+    animation: blink 2.4s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /*  FOOTER  */
+  footer {
+    margin-top: 48px;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-align: center;
+  }
+  footer a { color: var(--accent); }
+</style>
+<script src="https://cdn.jsdelivr.net/gh/stdlib-js/blas-base-dgemv@umd/browser.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/stdlib-js/math-base-special-max@umd/browser.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/stdlib-js/math-base-special-min@umd/browser.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/stdlib-js/math-base-special-floor@umd/browser.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/stdlib-js/math-base-special-round@umd/browser.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/stdlib-js/math-base-special-exp@umd/browser.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/stdlib-js/constants-float64-pi@umd/browser.js"></script>
+</head>
+<body>
+<div class="everything">
+
+  <header>
+    <div class="tag">Neural Network Demo</div>
+    <h1>DRAW A <span>DIGIT</span></h1>
+    <p class="subtitle">Draw 0-9 · See live inference</p>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- Drawing canvas -->
+    <div class="canvas-panel">
+      <div class="canvas-wrap" id="canvas-wrap">
+        <canvas id="draw-canvas" width="280" height="280"></canvas>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn danger" onclick="clearCanvas()">Clear</button>
+      </div>
+
+      <div id="preview-wrap">
+        <div class="preview-label">28×28 input</div>
+        <canvas id="preview-canvas" width="28" height="28"></canvas>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="result-panel">
+
+      <div class="big-prediction" id="big-pred">
+        <div class="prediction-digit dim" id="pred-digit">?</div>
+        <div class="prediction-meta">
+          <div class="conf-label">Confidence</div>
+          <div class="conf-bar-bg"><div class="conf-bar-fill" id="conf-fill"></div></div>
+          <div class="conf-value" id="conf-value">—</div>
+        </div>
+      </div>
+
+      <div class="chart-block">
+        <div class="chart-title">All class probabilities</div>
+        <div class="bar-list" id="bar-list">
+          <div id="idle-hint">Draw a digit and press Predict</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>MLP inference running entirely in-browser · weights from <a href="./model.json">model.json</a></footer>
+</div>
+
+  <script src="./shared-math.js"></script>
+  <script src="./browser-app.js"></script>
+</body>
+</html>
