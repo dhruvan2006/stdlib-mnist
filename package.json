@@ -1,0 +1,6 @@
+{
+    "private": true,
+    "dependencies": {
+        "@stdlib/stdlib": "^0.3.2"
+    }
+}
