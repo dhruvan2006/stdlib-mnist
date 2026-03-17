@@ -30,7 +30,7 @@ function printProgressBar(current, total, startTime, width = 30) {
     const remaining = (total - current) / max(rate, 1e-9);
     const eta = remaining > 0 ? remaining.toFixed(1) + 's' : '0s';
 
-    process.stdout.write(format('\r[%s] %d%% | ETA: %s | %d/%d batches', bar, round(percent * 100), eta, current, total));
+    process.stdout.write(format('\r[%s] %d%s | ETA: %s | %d/%d batches', bar, round(percent * 100), '%', eta, current, total));
 }
 
 function preprocess(data) {
@@ -277,7 +277,7 @@ class MLP {
             const accuracy = this.evaluate(testData);
 
             process.stdout.write('\r' + ' '.repeat(80) + '\r');
-            console.log(format('Epoch %d/%d | Loss: %.4f | Accuracy: %.2f%% | Time: %.1fs', epoch + 1, epochs, avgLoss, accuracy, duration));
+            console.log(format('Epoch %d/%d | Loss: %.4f | Accuracy: %.2f%s | Time: %.1fs', epoch + 1, epochs, avgLoss, accuracy, '%', duration));
         }
     }
 
@@ -342,7 +342,7 @@ function runTestSuite(modelPath) {
 
     const accuracy = net.evaluate(test_set);
     console.log('Test suite completed.');
-    console.log(format('Model accuracy on MNIST test set: %.2f%%', accuracy));
+    console.log(format('Model accuracy on MNIST test set: %.2f%s', accuracy, '%'));
 }
 
 const shouldTest = process.argv.includes('--test');
