@@ -7,16 +7,20 @@
     "dependencies": {
         "@stdlib/blas-base-dgemv": "^0.1.1",
         "@stdlib/blas-base-dger": "^0.1.1",
+        "@stdlib/blas-base-dscal": "^0.1.1",
+        "@stdlib/blas-ext-base-dfill": "^0.1.1",
         "@stdlib/constants-float64-ninf": "^0.2.3",
-        "@stdlib/constants-float64-pinf": "^0.2.3",
         "@stdlib/math-base-special-cos": "^0.3.1",
         "@stdlib/math-base-special-exp": "^0.2.5",
-        "@stdlib/math-base-special-log": "^0.2.4",
         "@stdlib/math-base-special-max": "^0.3.1",
         "@stdlib/math-base-special-min": "^0.2.4",
         "@stdlib/math-base-special-round": "^0.3.1",
         "@stdlib/math-base-special-sqrt": "^0.2.3",
         "@stdlib/random-base-randu": "^0.2.3",
+        "@stdlib/fs-exists": "^0.1.1",
+        "@stdlib/string-format": "^0.1.1",
+        "@stdlib/assert-is-array": "^0.1.1",
+        "@stdlib/assert-is-number": "^0.1.1",
         "mnist-data": "^1.2.6"
     }
 }
