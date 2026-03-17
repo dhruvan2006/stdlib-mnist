@@ -41,7 +41,7 @@ jobs:
         run: |
           mkdir public
           cp index.html browser-app.js shared-math.js site.webmanifest model.json public/
-          cp *.png *.ico public/
+          cp icons/*.png icons/*.ico public/
           
       - name: Setup Pages
         uses: actions/configure-pages@v4
