@@ -2,7 +2,8 @@
     "private": true,
     "scripts": {
         "train": "node train.js",
-        "test": "node train.js --test --model model.json"
+        "test": "node train.js --test --model model.json",
+        "postinstall": "node postinstall.js"
     },
     "dependencies": {
         "@stdlib/blas-base-dgemv": "^0.1.1",
